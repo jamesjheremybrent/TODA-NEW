@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>System Analysis and Design - TODA President Control Panel</title>
+  <style>
+    :root {
+      --text: #1f2937;
+      --muted: #4b5563;
+      --border: #d1d5db;
+      --panel: #f9fafb;
+      --accent: #0f766e;
+      --code-bg: #f3f4f6;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      color: var(--text);
+      font: 15px/1.6 "Times New Roman", Georgia, serif;
+      background: #fff;
+    }
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 24px 56px;
+    }
+    .cover {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      padding: 16px;
+      margin-bottom: 22px;
+    }
+    h1, h2, h3 {
+      margin: 0 0 10px;
+      line-height: 1.3;
+    }
+    h1 { font-size: 28px; text-align: center; }
+    h2 {
+      font-size: 22px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+      margin-top: 28px;
+    }
+    h3 { font-size: 18px; margin-top: 18px; }
+    p { margin: 0 0 10px; }
+    ul { margin: 0 0 12px 22px; }
+    .mono { font-family: "Courier New", Courier, monospace; }
+    .small { color: var(--muted); font-size: 14px; }
+    pre {
+      margin: 10px 0 18px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: var(--code-bg);
+      overflow-x: auto;
+      white-space: pre;
+      font: 13px/1.5 "Courier New", Courier, monospace;
+    }
+    .note {
+      border-left: 4px solid var(--accent);
+      background: #ecfeff;
+      padding: 10px 12px;
+      margin: 12px 0;
+    }
+    @media print {
+      .page { max-width: none; margin: 0; padding: 14mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="cover">
+      <h1>System Analysis and Design</h1>
+      <h3 style="text-align:center; margin-top:8px;">TODA President Control Panel</h3>
+      <p><strong>Repository:</strong> jamesjheremybrent/TODA-NEW</p>
+      <p><strong>Scope basis:</strong> README.md and implemented application behavior in <span class="mono">server.js</span> and frontend flow.</p>
+    </div>
+
+    <h2>1. System Architecture</h2>
+    <p><strong>Architectural style:</strong> Local-first three-tier architecture.</p>
+    <ul>
+      <li><strong>Presentation tier:</strong> React + Vite frontend (<span class="mono">src/main.tsx</span>, <span class="mono">src/App.tsx</span>).</li>
+      <li><strong>Application/API tier:</strong> Node.js + Express backend (<span class="mono">server.js</span>).</li>
+      <li><strong>Data tier:</strong> Local MySQL database (<span class="mono">toda</span>) and local file storage for driver photos and temporary CSV files.</li>
+      <li><strong>External dependency:</strong> Google Forms complaint form used by commuters after QR scan.</li>
+    </ul>
+
+    <h3>1.1 Architecture diagram (Mermaid)</h3>
+    <pre><code>flowchart LR
+  P[TODA President] --> UI[React/Vite Control Panel]
+  UI -->|HTTP + session cookie| API[Node.js/Express API]
+  API --> DB[(MySQL: toda)]
+  API --> FS[(Local Files: driver photos/temp CSV)]
+  C[Commuter/Passenger] -->|scan QR| GF[Google Complaint Form]
+  GF -->|CSV export by President| UI
+</code></pre>
+
+    <h2>2. Data Flow Diagrams (DFD)</h2>
+    <h3>2.1 DFD Level 0 (Context)</h3>
+    <pre><code>flowchart LR
+  Pres[TODA President] -->|login, manage records, import CSV| Sys[TODA President Control Panel]
+  Sys -->|views, confirmations, reports| Pres
+  Comm[Commuter] -->|complaint via QR| GForm[Google Form]
+  GForm -->|CSV export| Pres
+</code></pre>
+
+    <h3>2.2 DFD Level 1 (Main internal flows)</h3>
+    <pre><code>flowchart TB
+  Pres[TODA President]
+  P1[Auth & Session Management]
+  P2[Driver Registry Management]
+  P3[QR & Print Generation]
+  P4[Fare Settings Management]
+  P5[Complaint CSV Import & Resolution]
+  P6[Audit Logging]
+
+  D1[(toda_admin, sessions, login_attempts)]
+  D2[(tricycle_units)]
+  D3[(fare_settings)]
+  D4[(tricycle_complaints)]
+  D5[(audit_logs)]
+  F1[(driver-photos files)]
+  T1[(temp CSV files)]
+  G[Google Forms CSV]
+
+  Pres --> P1 --> D1
+  Pres --> P2 --> D2
+  P2 --> F1
+  Pres --> P3
+  P3 --> D2
+  Pres --> P4 --> D3
+  Pres --> P5
+  G --> P5
+  P5 --> D4
+  P5 --> T1
+  P1 --> P6 --> D5
+  P2 --> P6
+  P4 --> P6
+  P5 --> P6
+</code></pre>
+
+    <h2>3. Use Case Diagram</h2>
+    <p>The primary system user is the TODA President. Commuters interact only with the external Google Form and are not control-panel users.</p>
+    <pre><code>flowchart LR
+  President[TODA President]
+  Commuter[Commuter/Passenger]
+
+  UC1((Login))
+  UC2((Logout))
+  UC3((Change Password))
+  UC4((Manage Driver/Tricycle Registry))
+  UC5((Upload/Replace Driver Photo))
+  UC6((Generate Driver QR))
+  UC7((Print QR Sheets))
+  UC8((View/Update Fare Reference))
+  UC9((Import Complaint CSV))
+  UC10((Review Complaints))
+  UC11((Mark Complaint Resolved))
+  UC12((View Audit Log))
+  UC13((Run Backup/Restore Procedures))
+  UC14((Submit Complaint via Google Form))
+
+  President --> UC1
+  President --> UC2
+  President --> UC3
+  President --> UC4
+  President --> UC5
+  President --> UC6
+  President --> UC7
+  President --> UC8
+  President --> UC9
+  President --> UC10
+  President --> UC11
+  President --> UC12
+  President --> UC13
+
+  Commuter --> UC14
+</code></pre>
+
+    <h2>4. Class Diagram (Domain + Service View)</h2>
+    <pre><code>classDiagram
+  class Admin {
+    +admin_id: int
+    +username: string
+    +password_hash: string
+  }
+
+  class Session {
+    +session_id: string
+    +admin_id: int
+    +expires_at: datetime
+  }
+
+  class LoginAttempt {
+    +address: string
+    +window_started_at: datetime
+    +attempt_count: int
+  }
+
+  class TricycleUnit {
+    +unit_id: int
+    +driver_name: string
+    +body_number: string
+    +plate_number: string
+    +status: ACTIVE|INACTIVE
+    +phone: string
+    +address: string
+    +license_number: string
+    +member_since: date
+    +photo_path: string
+    +archived_at: datetime
+  }
+
+  class Complaint {
+    +complaint_id: int
+    +external_row_hash: string
+    +passenger_date_submitted: datetime
+    +target_body_number: string
+    +complaint_summary: string
+    +status: PENDING|RESOLVED
+    +resolved_at: datetime
+    +imported_at: datetime
+  }
+
+  class FareSetting {
+    +setting_id: int
+    +minimum_fare: decimal
+  }
+
+  class AuditLog {
+    +audit_id: int
+    +admin_id: int
+    +action: string
+    +entity_type: string
+    +entity_id: string
+    +details: json
+    +created_at: datetime
+  }
+
+  class AuthService
+  class RegistryService
+  class ComplaintImportService
+  class AuditService
+  class QRGenerator
+
+  Admin --> Session
+  Admin --> AuditLog
+  TricycleUnit --> Complaint : target_body_number
+  AuthService --> Admin
+  AuthService --> Session
+  AuthService --> LoginAttempt
+  RegistryService --> TricycleUnit
+  ComplaintImportService --> Complaint
+  ComplaintImportService --> TricycleUnit
+  AuditService --> AuditLog
+  QRGenerator --> TricycleUnit
+</code></pre>
+
+    <h2>5. Notes for documentation use</h2>
+    <div class="note">
+      The Mermaid definitions are intentionally included as plain text blocks for portability in browser and word-processor viewing. They can be rendered in Mermaid-enabled tools as diagrams without changing the logical model.
+    </div>
+
+    <p class="small">End of System Analysis and Design document.</p>
+  </div>
+</body>
+</html>
